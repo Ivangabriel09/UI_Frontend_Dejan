@@ -1,46 +1,61 @@
-import React, { useState } from 'react';
-import './App.css';
+import React, { useState } from "react";
+import "./App.css";
+import axios from "axios";
 
 function App() {
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [formData, setFormData] = useState({
+    gender: "Male",
+    age: "",
+    grade_level: "",
+    reading_score: "",
+    writing_score: "",
+    attendance_rate: "",
+    parent_education: "",
+    study_hours: "",
+    internet_access: "Yes",
+    lunch_type: "Standard",
+    extra_activities: "None",
+  });
 
-  const sendMessage = async (e) => {
+  const [result, setResult] = useState(null);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    // add user message
-    setMessages(prev => [...prev, { from: 'user', text: input }]);
     try {
-      const res = await fetch('http://localhost:5000/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input })
-      });
-      const data = await res.json();
-      setMessages(prev => [...prev, { from: 'bot', text: data.reply }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { from: 'bot', text: 'Error contacting server.' }]);
+      const response = await axios.post("http://127.0.0.1:8000/predict", formData);
+      setResult(response.data.prediction);
+    } catch (error) {
+      console.error("Prediction error:", error);
     }
-    setInput('');
   };
 
   return (
-    <div className="chat-container">
-      <h2>Chat with Flask Bot</h2>
-      <div className="messages">
-        {messages.map((m, i) => (
-          <div key={i} className={`message ${m.from}`}>{m.text}</div>
+    <div className="container">
+      <h2>Student Result Predictor</h2>
+      <form onSubmit={handleSubmit}>
+        {Object.entries(formData).map(([key, value]) => (
+          <div key={key} className="form-group">
+            <label>{key.replace(/_/g, " ")}:</label>
+            <input
+              type="text"
+              name={key}
+              value={value}
+              onChange={handleChange}
+              required
+            />
+          </div>
         ))}
-      </div>
-      <form className="input-form" onSubmit={sendMessage}>
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Type a message..."
-        />
-        <button type="submit">Send</button>
+        <button type="submit">Get Prediction</button>
       </form>
+      {result !== null && (
+        <div className="result">
+          Prediction: <strong>{result}</strong>
+        </div>
+      )}
     </div>
   );
 }
